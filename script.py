@@ -91,8 +91,6 @@ class Object:
    
    def move_cactus(self) -> bool:
       if self.x >= -self.width:
-         # pygame.draw.rect(display, CACTUS_COLOR, (self.x, self.y, self.width, self.height))
-         # pygame.draw.rect(display, (0, 128, 0), (self.x, self.y, self.width, self.height), 3)
          display.blit(self.image, (self.x, self.y))
          self.x -= self.speed
          return True
@@ -170,6 +168,9 @@ def drow_cactus_arr(array):
 
          cactus.return_self(radius, height, width, img)
 
+
+def cactus_to_start(self):
+   self.x = WIDTH + 100
    
 
 
@@ -193,9 +194,9 @@ def move_cloud(cloud):
 
 # TEXT
 font = pygame.font.get_default_font()
-def print_text(message, x, y, font_color = (0, 0, 0), font_size = 30):
+def print_text(message, x, y, font_color = (0, 0, 0), font_size = 25):
    font_type = pygame.font.Font(pygame.font.get_default_font(), font_size)
-   text = font_type.render(message, 1, font_color, None)
+   text = font_type.render(message, True, font_color)
    display.blit(text, (x, y))
 
 # PAUSE
@@ -205,24 +206,87 @@ def pause():
       for event in pygame.event.get():
          if event.type == pygame.QUIT:
             game = False
-            pygame.quit()
-         
-      print_text('Игра на паузе, чтобы продолжить нажмите Enter!', 30, 300)
+            pygame.quit() 
+         if event.type == 768:
+            paused = False
+            break
 
-      if keys[pygame.K_RETURN]:
-         paused = False 
+      print_text('Игра на паузе, чтобы продолжить нажмите любую клавишу!', 20, 300)
          
       pygame.display.update()
       set_fps()
 
 
 
+# COLLISION
+def check_collision(barriers):
+   for barrier in barriers:
+      if user_y + user_height >= barrier.y:
+         if barrier.x <= user_x <= barrier.x + barrier.width:
+            return True
+         elif barrier.x <= user_x + user_width <= barrier.x + barrier.width:
+            return True
+   return False
+
+
+# GAME OVER
+def game_over():
+   global scores, game, max_scores
+   if scores > max_scores:
+      max_scores = scores
+   stop = True
+   while stop:
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+            game = False
+            pygame.quit() 
+         if event.type == 768:
+            stop = False
+            cactus_to_start(cactus_arr[0])
+            cactus_to_start(cactus_arr[1])
+            cactus_to_start(cactus_arr[2])
+            scores = 0
+            break
+
+      print_text('Вы проиграли! Нажмите любую клавишу чтоб сыграть ещё!', 20, 300)
+      print_text('Рекорд: ' + str(max_scores), 300, 350)
+         
+      pygame.display.update()
+      set_fps()
+
+
+
+# SCORES
+scores = 0
+max_scores = 0
+above_cactus = False
+
+def count_socores(barriers):
+   global scores, above_cactus
+
+   if not above_cactus:
+      for barrier in barriers:
+         if barrier.x <= user_x + user_width / 2 <= barrier.x + barrier.width:
+            if user_y + user_height - 5 <= barrier.y:
+               above_cactus = True
+               break
+   else:
+      if jump_counter == 30:
+         scores += 1
+         above_cactus = False
+
+
+
+
+
 # RUN GAME FUNC ------------------------------------------
 def run_game():
+   global game, max_scores
    game = True
 
    cloud = render_clouds()
    create_cactuses_arr(cactus_arr)
+
 
    while game:
       for event in pygame.event.get():
@@ -233,7 +297,6 @@ def run_game():
       update_dispalay()
       set_fps()
 
-      # draw_dino()
       draw_dino_animation()
       is_jump()
 
@@ -241,10 +304,14 @@ def run_game():
 
       move_cloud(cloud)
 
+      count_socores(cactus_arr)
+      print_text('Scores: ' + str(scores), 660, 10)
+
       if keys[pygame.K_ESCAPE]:
          pause()
 
-
+      if check_collision(cactus_arr):
+         game_over()
 
 
 
